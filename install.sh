@@ -11,7 +11,7 @@ sudo mv prometheus promtool /usr/local/bin/
 sudo mv consoles/ console_libraries/ /etc/prometheus/
 sudo mv prometheus.yml /etc/prometheus/prometheus.yml
 sudo chown -R prometheus:prometheus /etc/prometheus/ /data/
-sudo cat > /etc/systemd/system/prometheus.service << EOF
+sudo tee > /etc/systemd/system/prometheus.service << "EOF"
 [Unit]
 Description=Prometheus
 Wants=network-online.target
@@ -42,11 +42,10 @@ sudo systemctl start prometheus
 
 ##Install Node Exporter and Create Service for Node Exporter
 sudo useradd --system --no-create-home --shell /bin/false node_exporter
-wget https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz
-tar -xvf node_exporter-1.6.1.linux-amd64.tar.gz
-sudo mv node_exporter-1.6.1.linux-amd64/node_exporter /usr/local/bin/
-rm -rf node_exporter*
-sudo cat > /etc/systemd/system/node_exporter.service << EOF
+curl -fsSL https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz \
+  | sudo tar -zxvf - -C /usr/local/bin --strip-components=1 node_exporter-1.3.1.linux-amd64/node_exporter \
+  && sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+sudo tee /etc/systemd/system/node_exporter.service <<"EOF"
 [Unit]
 Description=Node Exporter
 Wants=network-online.target
@@ -66,15 +65,17 @@ ExecStart=/usr/local/bin/node_exporter --collector.logind
 [Install]
 WantedBy=multi-user.target
 EOF
+sudo systemctl daemon-reload && \
+sudo systemctl start node_exporter && \
+sudo systemctl status node_exporter && \
 sudo systemctl enable node_exporter
-sudo systemctl start node_exporter
 
 ##Install Grafana
-$ sudo apt-get update
-$ sudo apt-get install -y apt-transport-https software-properties-common
-$ wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
-$ echo "deb https://packages.grafana.com/oss/deb stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
-$ sudo apt-get update
-$ sudo apt-get -y install grafana
-$ sudo systemctl enable grafana-server
-$ sudo systemctl start grafana-server
+sudo apt-get update
+sudo apt-get install -y apt-transport-https software-properties-common
+wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+echo "deb https://packages.grafana.com/oss/deb stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+sudo apt-get update
+sudo apt-get -y install grafana
+sudo systemctl enable grafana-server
+sudo systemctl start grafana-server
